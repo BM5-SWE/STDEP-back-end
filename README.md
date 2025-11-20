@@ -127,7 +127,7 @@ Press `Ctrl+C` in the terminal where the server is running.
 
 ### Team Notes
 
-- All groupmates should create their own `.env` file from `.env.example`.
+- Everyone should create their own `.env` file from `.env.example`.
 - Do **not** commit `.env` files (only `.env.example` is tracked).
 - Ensure the backend is running before starting the frontend (frontend makes API calls to `http://localhost:8000`).
 

@@ -1,10 +1,23 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from app.core.config import settings
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./dev.db"
+DATABASE_URL = (
+    f"postgresql+psycopg://{settings.DB_USER}:"
+    f"{settings.DB_PASSWORD}@"
+    f"{settings.DB_HOST}:"
+    f"{settings.DB_PORT}/"
+    f"{settings.DB_NAME}"
+)
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},  # needed for SQLite with FastAPI
+    DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args={"sslmode": settings.DB_SSL}
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)

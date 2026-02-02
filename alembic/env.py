@@ -1,5 +1,7 @@
 from logging.config import fileConfig
 
+import os
+
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -8,6 +10,8 @@ from alembic import context
 from app.db.base import Base
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.core.config import settings
+
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -65,9 +69,18 @@ def run_migrations_online() -> None:
 
     """
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        {
+            "sqlalchemy.url": (
+                f"postgresql+psycopg2://{settings.DB_USER}:"
+                f"{settings.DB_PASSWORD}@"
+                f"{settings.DB_HOST}:"
+                f"{settings.DB_PORT}/"
+                f"{settings.DB_NAME}"
+            )
+        },
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"sslmode": settings.DB_SSL},
     )
 
     with connectable.connect() as connection:

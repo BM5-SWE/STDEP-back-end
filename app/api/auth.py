@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair, UserResponse
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
@@ -78,15 +78,14 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     return TokenPair(access_token=access, refresh_token=refresh)
 
 # get user info with user id (testing)
-@router.get("/user/{user_id}", response_model=RegisterRequest)
+@router.get("/user/{user_id}", response_model=UserResponse)
 def get_user_info(user_id: int, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    # return password unhashed for testing
-    return RegisterRequest(
+    return UserResponse(
+        id=user.id,
         email=user.email,
-        username=user.username,
-        password=user.password_hash
+        username=user.username
     )

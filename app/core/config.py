@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DB_NAME: str
     DB_USER: str
     DB_PASSWORD: str
-    DB_SSL: str = "require"
+    DB_SSL: str
 
     JWT_SECRET: str
     JWT_ALG: str 
@@ -21,6 +21,7 @@ class Settings(BaseSettings):
             f"postgresql+psycopg://{self.DB_USER}:"
             f"{self.DB_PASSWORD}@{self.DB_HOST}:"
             f"{self.DB_PORT}/{self.DB_NAME}"
+            f"?sslmode={self.DB_SSL}"
         )
 
     class Config:

@@ -9,8 +9,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",          # local frontend
-        "http://127.0.0.1:3000",
-        "http://3.98.120.213:3000",      # if frontend ever runs on EC2
     ],
     allow_credentials=True,
     allow_methods=["*"],

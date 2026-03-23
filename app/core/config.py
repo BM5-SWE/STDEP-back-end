@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     JWT_ALG: str
     ACCESS_TOKEN_MINUTES: int
     REFRESH_TOKEN_DAYS: int
+    
+    # Gemini API
+    gemini_api_key: str
 
     class Config:
         env_file = ".env"

@@ -13,6 +13,7 @@ from app.core.security import (
     create_access_token, create_refresh_token,
     hash_token, extract_user_id_from_token
 )
+from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -25,6 +26,10 @@ def get_db():
 
 @router.post("/register", response_model=TokenPair, status_code=201)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    # Validate registration key
+    if payload.registration_key != settings.REGISTRATION_KEY:
+        raise HTTPException(status_code=401, detail="Invalid registration key")
+    
     # check existing email/username
     existing = db.execute(
         select(User).where((User.email == payload.email) | (User.username == payload.username))

@@ -20,6 +20,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     username: Mapped[str] = mapped_column(String(50), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

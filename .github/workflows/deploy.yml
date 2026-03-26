@@ -1,0 +1,28 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - dev  # This triggers the deploy whenever you push to the dev branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/STDEP-back-end
+            git pull origin dev
+            source venv/bin/activate
+            pip install -r requirements.txt
+            # Run migrations if you have any (alembic)
+            # alembic upgrade head 
+            pm2 restart stdep-backend

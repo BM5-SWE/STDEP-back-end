@@ -97,3 +97,29 @@ def get_query_history_by_id(
         created_at=query_history.created_at,
         updated_at=query_history.updated_at,
     )
+
+
+@router.delete("/{query_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_query_history(
+    query_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Delete a specific query history by ID (must belong to current user).
+    
+    Returns 204 No Content on successful deletion.
+    Returns 404 if query not found or doesn't belong to current user.
+    """
+    query_history = db.execute(
+        select(QueryHistory).where(
+            QueryHistory.id == query_id,
+            QueryHistory.user_id == current_user.id,
+        )
+    ).scalar_one_or_none()
+
+    if not query_history:
+        raise HTTPException(status_code=404, detail="Query history not found")
+
+    db.delete(query_history)
+    db.commit()

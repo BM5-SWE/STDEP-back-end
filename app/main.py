@@ -5,6 +5,7 @@ from app.api.gemini import router as gemini_router
 from app.api.query import router as query_router
 from app.api.products import router as products_router
 from app.api.margins import router as margins_router
+from app.api.workflow import router as workflow_router
 
 app = FastAPI(title="Your API")
 
@@ -21,6 +22,7 @@ app.include_router(gemini_router, prefix="/gemini", tags=["Gemini"])
 app.include_router(query_router, prefix="/api", tags=["Queries"])
 app.include_router(products_router, prefix="/api", tags=["Products"])
 app.include_router(margins_router, prefix="/api", tags=["Margins"])
+app.include_router(workflow_router, prefix="/api", tags=["Workflow"])
 
 @app.get("/")
 def root():

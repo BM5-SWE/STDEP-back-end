@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from pydantic import BaseModel, Field
 from typing import Optional
 from app.api.auth import get_current_user
@@ -37,9 +37,6 @@ class WorkflowStatusResponse(BaseModel):
     execution_arn: str
     status: str
     output: Optional[dict] = None  # Will contain S3 result key if succeeded
-
-class PresignS3Response(BaseModel):
-    url: str
 
 @router.post("", response_model=RunWorkflowResponse | RunWorkflowCachedResponse)
 def run_workflow(
@@ -151,24 +148,3 @@ def get_workflow_status(
         status=status,
         output=output,
     )
-
-@router.get("/presign-s3", response_model=PresignS3Response)
-def presign_s3_url(
-    bucket: str = Query(..., description="S3 bucket name"),
-    key: str = Query(..., description="S3 object key"),
-    expires_in: int = Query(900, ge=60, le=86400, description="Expiration in seconds (default 900)"),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Generate a pre-signed S3 URL for downloading a result file.
-    """
-    try:
-        client = boto3.client("s3", region_name=AWS_REGION)
-        url = client.generate_presigned_url(
-            ClientMethod="get_object",
-            Params={"Bucket": bucket, "Key": key},
-            ExpiresIn=expires_in
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate pre-signed URL: {e}")
-    return PresignS3Response(url=url)

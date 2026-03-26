@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime, timezone
+import uuid
 
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair, UserResponse, UserUpdateRequest, DeleteAccountRequest
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
-    hash_token
+    hash_token, extract_user_id_from_token
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -90,3 +91,102 @@ def get_user_info(user_id: int, db: Session = Depends(get_db)):
         username=user.username,
         password=user.password_hash
     )
+
+# ==================== USER PROFILE MANAGEMENT ====================
+
+def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)) -> User:
+    """Extract current user from JWT token in Authorization header"""
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header")
+    
+    # Extract token from "Bearer <token>"
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header")
+    
+    user_id = extract_user_id_from_token(token)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    
+    user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+    
+    return user
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user's profile information"""
+    return UserResponse(
+        id=str(current_user.id),
+        email=current_user.email,
+        username=current_user.username,
+        name=current_user.name,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at
+    )
+
+@router.put("/user", response_model=UserResponse)
+def update_user(
+    payload: UserUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update current user's email, username, or name"""
+    # Check if new email is already taken
+    if payload.email and payload.email != current_user.email:
+        existing = db.execute(select(User).where(User.email == payload.email)).scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=409, detail="Email already in use")
+        current_user.email = payload.email
+    
+    # Check if new username is already taken
+    if payload.username and payload.username != current_user.username:
+        existing = db.execute(select(User).where(User.username == payload.username)).scalar_one_or_none()
+        if existing:
+            raise HTTPException(status_code=409, detail="Username already in use")
+        current_user.username = payload.username
+    
+    # Update name if provided
+    if payload.name is not None:
+        current_user.name = payload.name
+    
+    current_user.updated_at = datetime.now(timezone.utc)
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return UserResponse(
+        id=str(current_user.id),
+        email=current_user.email,
+        username=current_user.username,
+        name=current_user.name,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at
+    )
+
+@router.delete("/user", status_code=204)
+def delete_user(
+    payload: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete current user account (requires password confirmation)"""
+    # Verify password before deletion
+    if not verify_password(payload.password, current_user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # Delete refresh tokens associated with user
+    db.execute(select(RefreshToken).where(RefreshToken.user_id == current_user.id))
+    db.query(RefreshToken).filter(RefreshToken.user_id == current_user.id).delete()
+    
+    # Delete user
+    db.delete(current_user)
+    db.commit()
+    
+    return None

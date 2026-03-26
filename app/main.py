@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.gemini import router as gemini_router
+from app.api.query import router as query_router
 
 app = FastAPI(title="Your API")
 
@@ -15,6 +16,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(gemini_router, prefix="/gemini", tags=["Gemini"])
+app.include_router(query_router, prefix="/api", tags=["Queries"])
 
 @app.get("/")
 def root():

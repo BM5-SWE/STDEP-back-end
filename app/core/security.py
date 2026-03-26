@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from app.core.config import settings
 import hashlib
+import uuid
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -26,3 +27,21 @@ def create_refresh_token(*, sub: str) -> tuple[str, datetime]:
 def hash_token(token: str) -> str:
     # stable hash for DB lookup/revocation
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+def decode_token(token: str) -> dict | None:
+    """Decode JWT token and return payload, or None if invalid"""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
+        return payload
+    except JWTError:
+        return None
+
+def extract_user_id_from_token(token: str) -> uuid.UUID | None:
+    """Extract user ID from JWT token"""
+    payload = decode_token(token)
+    if payload is None:
+        return None
+    try:
+        return uuid.UUID(payload.get("sub"))
+    except (ValueError, TypeError):
+        return None

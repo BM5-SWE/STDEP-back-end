@@ -6,6 +6,10 @@ from app.models.user import User
 import boto3
 import os
 import json
+from sqlalchemy.orm import Session
+from sqlalchemy import select, desc
+from app.models.query_history import QueryHistory
+from app.db.session import SessionLocal
 
 router = APIRouter(prefix="/run-workflow", tags=["workflow"])
 
@@ -23,20 +27,44 @@ class RunWorkflowResponse(BaseModel):
     execution_arn: str
     status: str
 
+class RunWorkflowCachedResponse(BaseModel):
+    cached: bool
+    s3_result_key: Optional[str] = None
+    result_cached_at: Optional[str] = None
+
 class WorkflowStatusResponse(BaseModel):
     execution_arn: str
     status: str
     output: Optional[dict] = None  # Will contain S3 result key if succeeded
 
-@router.post("", response_model=RunWorkflowResponse)
+@router.post("", response_model=RunWorkflowResponse | RunWorkflowCachedResponse)
 def run_workflow(
     payload: RunWorkflowRequest,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(lambda: SessionLocal()),
 ):
     """
     Trigger the AWS Step Function for a product query.
-    Returns the execution ARN and initial status.
+    Returns the execution ARN and initial status, or cached S3 key if available.
     """
+    # Check for cached result in QueryHistory
+    cached_query = db.execute(
+        select(QueryHistory)
+        .where(QueryHistory.user_id == current_user.id)
+        .where(QueryHistory.platform == payload.platform)
+        .where(QueryHistory.query_text == payload.query_text)
+        .where(QueryHistory.query_type == payload.query_type)
+        .where(QueryHistory.s3_result_key.isnot(None))
+        .order_by(desc(QueryHistory.result_cached_at))
+    ).scalars().first()
+
+    if cached_query:
+        return RunWorkflowCachedResponse(
+            cached=True,
+            s3_result_key=cached_query.s3_result_key,
+            result_cached_at=cached_query.result_cached_at.isoformat() if cached_query.result_cached_at else None,
+        )
+
     if not STEP_FUNCTION_ARN:
         raise HTTPException(status_code=500, detail="Step Function ARN not configured")
 

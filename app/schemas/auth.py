@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -13,3 +14,20 @@ class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    username: str
+    name: str | None = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+class UserUpdateRequest(BaseModel):
+    email: EmailStr | None = None
+    username: str | None = Field(None, min_length=3, max_length=50)
+    name: str | None = Field(None, max_length=255)
+
+class DeleteAccountRequest(BaseModel):
+    password: str

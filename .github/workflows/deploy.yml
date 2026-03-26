@@ -25,4 +25,4 @@ jobs:
             pip install -r requirements.txt
             # Run migrations if you have any (alembic)
             # alembic upgrade head 
-            pm2 restart stdep-backend
+            /home/ubuntu/.nvm/versions/node/v24.14.1/bin/pm2 restart stdep-backend

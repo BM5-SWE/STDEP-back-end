@@ -218,3 +218,29 @@ def update_saved_product(
         created_at=saved_product.created_at,
         updated_at=saved_product.updated_at,
     )
+
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_saved_product(
+    product_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Delete a saved product by ID (must belong to current user).
+    
+    Returns 204 No Content on successful deletion.
+    Returns 404 if product not found or doesn't belong to current user.
+    """
+    saved_product = db.execute(
+        select(SavedProduct).where(
+            SavedProduct.id == product_id,
+            SavedProduct.user_id == current_user.id,
+        )
+    ).scalar_one_or_none()
+
+    if not saved_product:
+        raise HTTPException(status_code=404, detail="Saved product not found")
+
+    db.delete(saved_product)
+    db.commit()

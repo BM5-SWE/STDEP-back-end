@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_DAYS: int
     
     # Gemini API
-    gemini_api_key: str
+    GEMINI_API_KEY: str
+    
+    # Registration
+    REGISTRATION_KEY: str
 
     class Config:
         env_file = ".env"

@@ -14,7 +14,7 @@ from app.core.security import (
     hash_token, extract_user_id_from_token
 )
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
 def get_db():
     db = SessionLocal()

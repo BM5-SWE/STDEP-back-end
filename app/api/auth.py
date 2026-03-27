@@ -8,6 +8,7 @@ from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair, UserResponse, UserUpdateRequest, DeleteAccountRequest
+from app.core.config import settings
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
@@ -25,6 +26,10 @@ def get_db():
 
 @router.post("/register", response_model=TokenPair, status_code=201)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    # Validate access code
+    if payload.access_code != settings.REGISTRATION_KEY:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+
     # check existing email/username
     existing = db.execute(
         select(User).where((User.email == payload.email) | (User.username == payload.username))

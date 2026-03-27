@@ -6,7 +6,7 @@ from typing import Optional
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.saved_product import SavedProduct
-from app.schemas.models import SavedProductCreate, SavedProductResponse
+from app.schemas.models import SavedProductCreate, SavedProductResponse, SavedProductUpdate
 from app.api.auth import get_current_user
 
 router = APIRouter(prefix="/saved-products", tags=["saved-products"])
@@ -146,6 +146,62 @@ def get_saved_product_by_id(
 
     if not saved_product:
         raise HTTPException(status_code=404, detail="Saved product not found")
+
+    return SavedProductResponse(
+        id=saved_product.id,
+        user_id=saved_product.user_id,
+        product_name=saved_product.product_name,
+        platform=saved_product.platform,
+        platform_url=saved_product.platform_url,
+        product_image_url=saved_product.product_image_url,
+        price=saved_product.price,
+        currency=saved_product.currency,
+        category=saved_product.category,
+        cluster_id=saved_product.cluster_id,
+        s3_reference=saved_product.s3_reference,
+        created_at=saved_product.created_at,
+        updated_at=saved_product.updated_at,
+    )
+
+
+@router.put("/{product_id}", response_model=SavedProductResponse)
+def update_saved_product(
+    product_id: str,
+    product_data: SavedProductUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update a saved product by ID (must belong to current user).
+    
+    Request body (all fields optional):
+    - product_name: str
+    - platform_url: str
+    - product_image_url: str
+    - price: float
+    - currency: str
+    - category: str
+    - s3_reference: str
+    
+    Only provided fields will be updated.
+    """
+    saved_product = db.execute(
+        select(SavedProduct).where(
+            SavedProduct.id == product_id,
+            SavedProduct.user_id == current_user.id,
+        )
+    ).scalar_one_or_none()
+
+    if not saved_product:
+        raise HTTPException(status_code=404, detail="Saved product not found")
+
+    # Update only provided fields
+    update_data = product_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(saved_product, field, value)
+
+    db.commit()
+    db.refresh(saved_product)
 
     return SavedProductResponse(
         id=saved_product.id,

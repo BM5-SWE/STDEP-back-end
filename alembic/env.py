@@ -10,6 +10,9 @@ from alembic import context
 from app.db.base import Base
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.models.saved_product import SavedProduct
+from app.models.query_history import QueryHistory
+from app.models.margin_estimate import MarginEstimate
 from app.core.config import settings
 
 

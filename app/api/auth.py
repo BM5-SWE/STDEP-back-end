@@ -83,20 +83,6 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
     return TokenPair(access_token=access, refresh_token=refresh)
 
-# get user info with user id (testing)
-@router.get("/user/{user_id}", response_model=RegisterRequest)
-def get_user_info(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
-    # return password unhashed for testing
-    return RegisterRequest(
-        email=user.email,
-        username=user.username,
-        password=user.password_hash
-    )
-
 # ==================== USER PROFILE MANAGEMENT ====================
 
 def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)) -> User:
@@ -130,6 +116,7 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
         email=current_user.email,
         username=current_user.username,
         name=current_user.name,
+        role=current_user.role,
         is_active=current_user.is_active,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at
@@ -170,6 +157,7 @@ def update_user(
         email=current_user.email,
         username=current_user.username,
         name=current_user.name,
+        role=current_user.role,
         is_active=current_user.is_active,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at

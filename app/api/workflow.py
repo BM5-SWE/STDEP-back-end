@@ -7,9 +7,10 @@ import boto3
 import os
 import json
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc
+from sqlalchemy import select
 from app.models.query_history import QueryHistory
 from app.db.session import SessionLocal
+from datetime import datetime
 
 router = APIRouter(prefix="/run-workflow", tags=["workflow"])
 
@@ -94,10 +95,12 @@ def run_workflow(
 def get_workflow_status(
     execution_arn: str = Path(..., description="Step Function execution ARN"),
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(lambda: SessionLocal()),
 ):
     """
     Poll the status of a Step Function execution.
     Returns status and output (S3 result key) if succeeded.
+    If succeeded, saves QueryHistory if not already present for this query/result.
     """
     try:
         client = boto3.client("stepfunctions", region_name=AWS_REGION)
@@ -111,6 +114,32 @@ def get_workflow_status(
                 output = json.loads(response["output"])
             except Exception:
                 output = {"raw": response.get("output")}
+            # Save QueryHistory if s3_result_key present and not already cached
+            s3_result_key = output.get("s3_result_key") if isinstance(output, dict) else None
+            query_text = output.get("query_text") if isinstance(output, dict) else None
+            platform = output.get("platform") if isinstance(output, dict) else None
+            query_type = output.get("query_type") if isinstance(output, dict) else None
+            if s3_result_key and query_text and platform and query_type:
+                existing = db.execute(
+                    select(QueryHistory)
+                    .where(QueryHistory.user_id == current_user.id)
+                    .where(QueryHistory.platform == platform)
+                    .where(QueryHistory.query_text == query_text)
+                    .where(QueryHistory.query_type == query_type)
+                    .where(QueryHistory.s3_result_key == s3_result_key)
+                ).scalars().first()
+                if not existing:
+                    db.add(QueryHistory(
+                        user_id=current_user.id,
+                        query_text=query_text,
+                        platform=platform,
+                        query_type=query_type,
+                        s3_result_key=s3_result_key,
+                        result_cached_at=datetime.utcnow(),
+                        total_products_returned=output.get("total_products_returned"),
+                        num_clusters=output.get("num_clusters"),
+                    ))
+                    db.commit()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get workflow status: {e}")
 

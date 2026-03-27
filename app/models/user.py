@@ -21,7 +21,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=True)
-    role: Mapped[str] = mapped_column(String(50), nullable=False, default="user")  # "user" or "admin"
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="user", server_default="user")  # "user" or "admin"
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

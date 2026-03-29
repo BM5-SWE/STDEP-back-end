@@ -6,6 +6,7 @@ from app.api.query import router as query_router
 from app.api.products import router as products_router
 from app.api.margins import router as margins_router
 from app.api.workflow import router as workflow_router
+from app.api.s3data import router as s3data_router
 
 app = FastAPI(title="Your API")
 
@@ -23,6 +24,7 @@ app.include_router(query_router, prefix="/api", tags=["Queries"])
 app.include_router(products_router, prefix="/api", tags=["Products"])
 app.include_router(margins_router, prefix="/api", tags=["Margins"])
 app.include_router(workflow_router, prefix="/api", tags=["Workflow"])
+app.include_router(s3data_router, prefix="/api/data", tags=["S3 Data"])
 
 @app.get("/")
 def root():

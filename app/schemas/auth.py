@@ -33,3 +33,6 @@ class UserUpdateRequest(BaseModel):
 
 class DeleteAccountRequest(BaseModel):
     password: str
+
+class RefreshRequest(BaseModel):
+    refresh_token: str

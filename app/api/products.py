@@ -54,6 +54,7 @@ def save_product(
         category=product_data.category,
         cluster_id=product_data.cluster_id,
         s3_reference=product_data.s3_reference,
+        scores=product_data.scores,
     )
 
     db.add(new_product)
@@ -72,6 +73,7 @@ def save_product(
         category=new_product.category,
         cluster_id=new_product.cluster_id,
         s3_reference=new_product.s3_reference,
+        scores=new_product.scores,
         created_at=new_product.created_at,
         updated_at=new_product.updated_at,
     )
@@ -123,6 +125,7 @@ def get_saved_products(
             category=sp.category,
             cluster_id=sp.cluster_id,
             s3_reference=sp.s3_reference,
+            scores=sp.scores,
             created_at=sp.created_at,
             updated_at=sp.updated_at,
         )
@@ -159,6 +162,7 @@ def get_saved_product_by_id(
         category=saved_product.category,
         cluster_id=saved_product.cluster_id,
         s3_reference=saved_product.s3_reference,
+        scores=saved_product.scores,
         created_at=saved_product.created_at,
         updated_at=saved_product.updated_at,
     )
@@ -215,6 +219,7 @@ def update_saved_product(
         category=saved_product.category,
         cluster_id=saved_product.cluster_id,
         s3_reference=saved_product.s3_reference,
+        scores=saved_product.scores,
         created_at=saved_product.created_at,
         updated_at=saved_product.updated_at,
     )

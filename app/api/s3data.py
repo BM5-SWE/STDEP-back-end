@@ -82,8 +82,17 @@ def _record_query_history(
     product_count: int = 0,
     num_clusters: int = 0,
 ):
-    """Record a completed search to the query_history table."""
+    """Record a completed search to the query_history table — skips if the same s3_key already exists for this user."""
     try:
+        from sqlalchemy import select
+        existing = db.execute(
+            select(QueryHistory)
+            .where(QueryHistory.user_id == user_id)
+            .where(QueryHistory.s3_result_key == s3_key)
+        ).scalar_one_or_none()
+        if existing:
+            return  # Already recorded for this exact result file
+
         record = QueryHistory(
             user_id=user_id,
             query_text=query_text,

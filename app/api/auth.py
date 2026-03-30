@@ -8,12 +8,12 @@ import uuid
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair, UserResponse, UserUpdateRequest, DeleteAccountRequest
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenPair, UserResponse, UserUpdateRequest, DeleteAccountRequest, RefreshRequest
 from app.core.config import settings
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
-    hash_token, extract_user_id_from_token
+    hash_token, extract_user_id_from_token, decode_token
 )
 
 router = APIRouter()
@@ -176,3 +176,42 @@ def delete_user(
     db.commit()
     
     return None
+
+
+@router.post("/refresh", response_model=TokenPair)
+def refresh_tokens(payload: RefreshRequest, db: Session = Depends(get_db)):
+    """Exchange a valid refresh token for a new access + refresh token pair."""
+    token_payload = decode_token(payload.refresh_token)
+    if token_payload is None or token_payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    token_hash = hash_token(payload.refresh_token)
+    stored = db.execute(
+        select(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash)
+        .where(RefreshToken.revoked == False)
+    ).scalar_one_or_none()
+
+    if not stored or stored.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Refresh token expired or revoked")
+
+    # Revoke old refresh token (single-use rotation)
+    stored.revoked = True
+    db.add(stored)
+
+    user = db.execute(select(User).where(User.id == stored.user_id)).scalar_one_or_none()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    # Issue new token pair
+    access = create_access_token(sub=str(user.id))
+    refresh, refresh_exp = create_refresh_token(sub=str(user.id))
+
+    db.add(RefreshToken(
+        user_id=user.id,
+        token_hash=hash_token(refresh),
+        expires_at=refresh_exp,
+    ))
+    db.commit()
+
+    return TokenPair(access_token=access, refresh_token=refresh)

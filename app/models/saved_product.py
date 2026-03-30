@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import String, DateTime, func, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.db.base import Base
 
 
@@ -37,6 +37,9 @@ class SavedProduct(Base):
 
     # Reference to where full product data is stored in S3 (if needed)
     s3_reference: Mapped[str] = mapped_column(String(500), nullable=True)
+
+    # Snapshot of all scores & stats at time of bookmark
+    scores: Mapped[dict] = mapped_column(JSONB, nullable=True)
 
     # Timestamps
     created_at: Mapped[DateTime] = mapped_column(

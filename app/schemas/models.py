@@ -15,6 +15,7 @@ class SavedProductCreate(BaseModel):
     category: Optional[str] = None
     cluster_id: Optional[int] = None
     s3_reference: Optional[str] = None
+    scores: Optional[dict] = None
 
 
 class SavedProductUpdate(BaseModel):
@@ -39,6 +40,7 @@ class SavedProductResponse(BaseModel):
     category: Optional[str]
     cluster_id: Optional[int]
     s3_reference: Optional[str]
+    scores: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
 

@@ -201,24 +201,6 @@ def add_favourite(platform: str, payload: FavouriteRequest, current_user: User =
     data["favourites"] = favourites
     _write_s3_json(CATEGORIES_BUCKET, key, data)
 
-    # ── Also add the query to category_definitions.json suggested_items ──
-    if payload.category_id and payload.category_id != "uncategorized":
-        try:
-            cat_data = _read_s3_json(CATEGORIES_BUCKET, "category_definitions.json")
-            categories = cat_data.get("categories", [])
-            for cat in categories:
-                if cat["id"] == payload.category_id:
-                    items = cat.get("suggested_items", [])
-                    # Only add if not already present (case-insensitive)
-                    if not any(item.lower() == payload.query.lower() for item in items):
-                        items.append(payload.query)
-                        cat["suggested_items"] = items
-                        cat_data["_meta"]["updated_at"] = datetime.now(timezone.utc).isoformat()
-                        _write_s3_json(CATEGORIES_BUCKET, "category_definitions.json", cat_data)
-                    break
-        except Exception:
-            pass  # Non-critical — don't fail the favourite save
-
     return {"status": "added", "query": payload.query}
 
 

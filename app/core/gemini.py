@@ -70,11 +70,14 @@ def generate_product_estimate(*, product_name: str, brand: str, category: str, p
             data = response.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"]
             return _extract_json(text)
-        except requests.exceptions.Timeout as e:
-            last_error = e
+        except requests.exceptions.Timeout:
+            last_error = RuntimeError("Gemini API request timed out")
             continue
-        except requests.exceptions.ConnectionError as e:
-            last_error = e
+        except requests.exceptions.ConnectionError:
+            last_error = RuntimeError("Could not connect to Gemini API")
+            continue
+        except requests.exceptions.HTTPError as e:
+            last_error = RuntimeError(f"Gemini API returned status {e.response.status_code}")
             continue
 
     raise last_error or RuntimeError("Gemini API failed after 3 attempts")

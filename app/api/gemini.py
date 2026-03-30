@@ -20,6 +20,6 @@ def estimate(req: ProductEstimateRequest):
             price=req.price,
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Gemini estimation failed. Please try again later.") from exc
 
     return result

@@ -21,7 +21,7 @@ def _extract_json(text: str) -> dict:
 def generate_product_estimate(*, product_name: str, brand: str, category: str, price: float) -> dict:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-3-flash-preview:generateContent?key={settings.gemini_api_key}"
+        f"gemini-3-flash-preview:generateContent?key={settings.GEMINI_API_KEY}"
     )
 
     prompt = f"""

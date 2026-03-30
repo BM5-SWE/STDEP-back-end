@@ -113,6 +113,7 @@ def get_categories(current_user: User = Depends(get_current_user)):
 class NewCategoryRequest(BaseModel):
     id: str = Field(min_length=1, max_length=100)
     label: str = Field(min_length=1, max_length=100)
+    suggested_items: list[str] = []
 
 
 @router.post("/categories", status_code=201)
@@ -121,7 +122,7 @@ def create_category(payload: NewCategoryRequest, current_user: User = Depends(ge
     categories = data.get("categories", [])
     if any(c["id"] == payload.id for c in categories):
         raise HTTPException(status_code=409, detail="Category ID already exists")
-    categories.append({"id": payload.id, "label": payload.label, "is_user_generated": True, "suggested_items": []})
+    categories.append({"id": payload.id, "label": payload.label, "is_user_generated": True, "suggested_items": payload.suggested_items})
     data["categories"] = categories
     data["_meta"]["updated_at"] = datetime.now(timezone.utc).isoformat()
     _write_s3_json(CATEGORIES_BUCKET, "category_definitions.json", data)

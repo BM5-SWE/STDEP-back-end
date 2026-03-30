@@ -61,8 +61,20 @@ def generate_product_estimate(*, product_name: str, brand: str, category: str, p
         ]
     }
 
-    response = requests.post(url, json=body, timeout=30)
-    response.raise_for_status()
-    data = response.json()
-    text = data["candidates"][0]["content"]["parts"][0]["text"]
-    return _extract_json(text)
+    last_error = None
+    for attempt in range(3):
+        try:
+            timeout = 60 + (attempt * 30)  # 60s, 90s, 120s
+            response = requests.post(url, json=body, timeout=timeout)
+            response.raise_for_status()
+            data = response.json()
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            return _extract_json(text)
+        except requests.exceptions.Timeout as e:
+            last_error = e
+            continue
+        except requests.exceptions.ConnectionError as e:
+            last_error = e
+            continue
+
+    raise last_error or RuntimeError("Gemini API failed after 3 attempts")

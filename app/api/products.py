@@ -42,6 +42,33 @@ def save_product(
     
     Returns: SavedProductResponse with created product details
     """
+    # Check for duplicate (same product name + platform + user)
+    existing = db.execute(
+        select(SavedProduct).where(
+            SavedProduct.user_id == current_user.id,
+            SavedProduct.product_name == product_data.product_name,
+            SavedProduct.platform == product_data.platform,
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        return SavedProductResponse(
+            id=existing.id,
+            user_id=existing.user_id,
+            product_name=existing.product_name,
+            platform=existing.platform,
+            platform_url=existing.platform_url,
+            product_image_url=existing.product_image_url,
+            price=existing.price,
+            currency=existing.currency,
+            category=existing.category,
+            cluster_id=existing.cluster_id,
+            s3_reference=existing.s3_reference,
+            scores=existing.scores,
+            created_at=existing.created_at,
+            updated_at=existing.updated_at,
+        )
+
     # Create new SavedProduct record
     new_product = SavedProduct(
         user_id=current_user.id,
